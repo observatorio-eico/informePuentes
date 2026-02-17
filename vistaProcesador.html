@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de Features GeoJSON</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f8f9fa;
+      color: #212529;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      font-weight: 600;
+      color: #212529;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .header-actions {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      color: #495057;
+    }
+    .btn-primary {
+      background: #0d6efd;
+      color: white;
+      border-color: #0d6efd;
+    }
+    .btn-primary:hover {
+      background: #0b5ed7;
+      border-color: #0b5ed7;
+    }
+    .btn-success {
+      background: #198754;
+      color: white;
+      border-color: #198754;
+    }
+    .btn-success:hover {
+      background: #157347;
+      border-color: #157347;
+    }
+    .btn-info {
+      background: #0dcaf0;
+      color: #000;
+      border-color: #0dcaf0;
+    }
+    .btn-info:hover {
+      background: #31d2f2;
+      border-color: #31d2f2;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+      border-color: #dc3545;
+    }
+    .btn-danger:hover {
+      background: #bb2d3b;
+      border-color: #bb2d3b;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .feature-card {
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      transition: box-shadow 0.2s ease;
+    }
+    .feature-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .feature-card h3 {
+      margin: 0 0 12px 0;
+      color: #212529;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 8px;
+    }
+    .feature-info {
+      font-size: 13px;
+      color: #555;
+      margin: 5px 0;
+    }
+    .feature-info strong {
+      color: #2c3e50;
+    }
+    .feature-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 12px;
+      flex: 1;
+    }
+    .btn-warning {
+      background: #ffc107;
+      color: #000;
+      border-color: #ffc107;
+    }
+    .btn-warning:hover {
+      background: #ffca2c;
+      border-color: #ffca2c;
+    }
+    .output {
+      margin-top: 30px;
+      background: #1e1e1e;
+      color: #0f0;
+      padding: 20px;
+      border-radius: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #95a5a6;
+    }
+    .empty-state svg {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+    .swal2-popup {
+      border-radius: 8px !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    }
+    .swal2-html-container {
+      max-height: 70vh !important;
+      overflow-y: auto !important;
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      text-align: left;
+    }
+    .modal-field {
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-field.full-width {
+      grid-column: 1 / -1;
+    }
+    .modal-field label {
+      font-weight: 500;
+      font-size: 13px;
+      color: #495057;
+      margin-bottom: 5px;
+    }
+    .modal-field input,
+    .modal-field textarea {
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .modal-field input:focus,
+    .modal-field textarea:focus {
+      outline: none;
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+    .modal-field textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌍 Generador de Features para GeoJSON</h1>
+  <div class="container">
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="showAddCoordinateModal()">
+        ➕ Nueva Coordenada
+      </button>
+      <button class="btn btn-success" onclick="downloadFile()">
+        ⬇ Exportar Features
+      </button>
+      <button class="btn btn-info" onclick="copyToClipboard()">
+        📋 Copiar JSON
+      </button>
+      <button class="btn btn-danger" onclick="clearAllFeatures()">
+        🗑️ Limpiar Todo
+      </button>
+    </div>
+
+    <div id="featuresContainer" class="features-grid"></div>
+    <div class="output" id="output"></div>
+  </div>
+
+  <script>
+    let featureList = [];
+    let coordIndex = 0;
+    const numPoints = 72;
+    const radius = 500;
+
+    function showAddCoordinateModal() {
+      Swal.fire({
+        title: '📍 Nueva Coordenada',
+        html: `
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>Coordenada X *</label>
+              <input id="swal-x" type="number" step="any" placeholder="521398.68">
+            </div>
+            
+            <div class="modal-field">
+              <label>Coordenada Y *</label>
+              <input id="swal-y" type="number" step="any" placeholder="1096056.81">
+            </div>
+            
+            <div class="modal-field full-width">
+              <label>Nombre</label>
+              <input id="swal-nombre" type="text" placeholder="Occidental">
+            </div>
+            
+            <div class="modal-field">
+              <label>Humedad mínima</label>
+              <input id="swal-hum-min" type="text" placeholder="10%">
+            </div>
+            
+            <div class="modal-field">
+              <label>Humedad máxima</label>
+              <input id="swal-hum-max" type="text" placeholder="36%">
+            </div>
+            
+            <div class="modal-field">
+              <label>Densidad mínima</label>
+              <input id="swal-dens-min" type="text" placeholder="1.822 Ton/m³">
+            </div>
+            
+            <div class="modal-field">
+              <label>Densidad máxima</label>
+              <input id="swal-dens-max" type="text" placeholder="2.316 Ton/m³">
+            </div>
+            
+            <div class="modal-field">
+              <label>Soporte mínimo</label>
+              <input id="swal-sup-min" type="text" placeholder="5 Ton/m²">
+            </div>
+            
+            <div class="modal-field">
+              <label>Soporte máximo</label>
+              <input id="swal-sup-max" type="text" placeholder="10 Ton/m²">
+            </div>
+            
+            <div class="modal-field">
+              <label>Profundidad</label>
+              <input id="swal-prof" type="text" placeholder="4 m">
+            </div>
+            
+            <div class="modal-field">
+              <label>Clasificación</label>
+              <input id="swal-clasif" type="text" placeholder="Arena limosa">
+            </div>
+            
+            <div class="modal-field full-width">
+              <label>Nota</label>
+              <textarea id="swal-nota" placeholder="Observaciones"></textarea>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Agregar',
+        cancelButtonText: 'Cancelar',
+        width: '700px',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        preConfirm: () => {
+          const x = parseFloat(document.getElementById('swal-x').value);
+          const y = parseFloat(document.getElementById('swal-y').value);
+          
+          if (isNaN(x) || isNaN(y)) {
+            Swal.showValidationMessage('Las coordenadas X e Y son obligatorias');
+            return false;
+          }
+          
+          return {
+            x: x,
+            y: y,
+            nombre: document.getElementById('swal-nombre').value,
+            humedad_min: document.getElementById('swal-hum-min').value,
+            humedad_max: document.getElementById('swal-hum-max').value,
+            densidad_min: document.getElementById('swal-dens-min').value,
+            densidad_max: document.getElementById('swal-dens-max').value,
+            soporte_min: document.getElementById('swal-sup-min').value,
+            soporte_max: document.getElementById('swal-sup-max').value,
+            profundidad_m: document.getElementById('swal-prof').value,
+            clasificacion: document.getElementById('swal-clasif').value,
+            nota: document.getElementById('swal-nota').value
+          };
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          addCoordinate(result.value);
+          Swal.fire({
+            icon: 'success',
+            title: '¡Coordenada agregada!',
+            text: 'La feature se ha creado correctamente',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        }
+      });
+    }
+
+    function addCoordinate(data) {
+      createFeature(coordIndex, data.x, data.y, {
+        nombre: data.nombre,
+        humedad_min: data.humedad_min,
+        humedad_max: data.humedad_max,
+        densidad_min: data.densidad_min,
+        densidad_max: data.densidad_max,
+        soporte_min: data.soporte_min,
+        soporte_max: data.soporte_max,
+        profundidad_m: data.profundidad_m,
+        clasificacion: data.clasificacion,
+        nota: data.nota
+      });
+      coordIndex++;
+      renderFeatures();
+      renderOutput();
+    }
+
+    function createFeature(index, x, y, props) {
+      let coords = [];
+      for (let j = 0; j < numPoints; j++) {
+        let angle = (2 * Math.PI / numPoints) * j;
+        coords.push([
+          parseFloat((x + radius * Math.cos(angle)).toFixed(2)),
+          parseFloat((y + radius * Math.sin(angle)).toFixed(2))
+        ]);
+      }
+      coords.push(coords[0]);
+
+      featureList[index] = {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [coords]
+        },
+        properties: props || {},
+        _metadata: { x, y, index }
+      };
+    }
+
+    function showEditModal(index) {
+      const feature = featureList[index];
+      if (!feature) return;
+
+      const props = feature.properties;
+      const meta = feature._metadata;
+
+      Swal.fire({
+        title: '✏️ Editar Coordenada',
+        html: `
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>Coordenada X *</label>
+              <input id="edit-x" type="number" step="any" value="${meta.x}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Coordenada Y *</label>
+              <input id="edit-y" type="number" step="any" value="${meta.y}">
+            </div>
+            
+            <div class="modal-field full-width">
+              <label>Nombre</label>
+              <input id="edit-nombre" type="text" value="${props.nombre || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Humedad mínima</label>
+              <input id="edit-hum-min" type="text" value="${props.humedad_min || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Humedad máxima</label>
+              <input id="edit-hum-max" type="text" value="${props.humedad_max || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Densidad mínima</label>
+              <input id="edit-dens-min" type="text" value="${props.densidad_min || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Densidad máxima</label>
+              <input id="edit-dens-max" type="text" value="${props.densidad_max || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Soporte mínimo</label>
+              <input id="edit-sup-min" type="text" value="${props.soporte_min || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Soporte máximo</label>
+              <input id="edit-sup-max" type="text" value="${props.soporte_max || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Profundidad</label>
+              <input id="edit-prof" type="text" value="${props.profundidad_m || ''}">
+            </div>
+            
+            <div class="modal-field">
+              <label>Clasificación</label>
+              <input id="edit-clasif" type="text" value="${props.clasificacion || ''}">
+            </div>
+            
+            <div class="modal-field full-width">
+              <label>Nota</label>
+              <textarea id="edit-nota">${props.nota || ''}</textarea>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Guardar cambios',
+        cancelButtonText: 'Cancelar',
+        width: '700px',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        preConfirm: () => {
+          const x = parseFloat(document.getElementById('edit-x').value);
+          const y = parseFloat(document.getElementById('edit-y').value);
+          
+          if (isNaN(x) || isNaN(y)) {
+            Swal.showValidationMessage('Las coordenadas X e Y son obligatorias');
+            return false;
+          }
+          
+          return {
+            x: x,
+            y: y,
+            nombre: document.getElementById('edit-nombre').value,
+            humedad_min: document.getElementById('edit-hum-min').value,
+            humedad_max: document.getElementById('edit-hum-max').value,
+            densidad_min: document.getElementById('edit-dens-min').value,
+            densidad_max: document.getElementById('edit-dens-max').value,
+            soporte_min: document.getElementById('edit-sup-min').value,
+            soporte_max: document.getElementById('edit-sup-max').value,
+            profundidad_m: document.getElementById('edit-prof').value,
+            clasificacion: document.getElementById('edit-clasif').value,
+            nota: document.getElementById('edit-nota').value
+          };
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          createFeature(index, result.value.x, result.value.y, {
+            nombre: result.value.nombre,
+            humedad_min: result.value.humedad_min,
+            humedad_max: result.value.humedad_max,
+            densidad_min: result.value.densidad_min,
+            densidad_max: result.value.densidad_max,
+            soporte_min: result.value.soporte_min,
+            soporte_max: result.value.soporte_max,
+            profundidad_m: result.value.profundidad_m,
+            clasificacion: result.value.clasificacion,
+            nota: result.value.nota
+          });
+          renderFeatures();
+          renderOutput();
+          Swal.fire({
+            icon: 'success',
+            title: '¡Actualizado!',
+            text: 'Los cambios se han guardado correctamente',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        }
+      });
+    }
+
+    function deleteFeature(index) {
+      Swal.fire({
+        title: '¿Eliminar coordenada?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          featureList[index] = null;
+          renderFeatures();
+          renderOutput();
+          Swal.fire({
+            icon: 'success',
+            title: '¡Eliminado!',
+            text: 'La coordenada ha sido eliminada',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        }
+      });
+    }
+
+    function renderFeatures() {
+      const container = document.getElementById('featuresContainer');
+      const validFeatures = featureList.map((f, i) => f ? { ...f, originalIndex: i } : null).filter(f => f !== null);
+      
+      if (validFeatures.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <h3>No hay coordenadas agregadas</h3>
+            <p>Haz clic en "Nueva Coordenada" para comenzar</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = validFeatures.map(feature => {
+        const props = feature.properties;
+        const meta = feature._metadata;
+        const index = feature.originalIndex;
+        
+        return `
+          <div class="feature-card">
+            <h3>${props.nombre || 'Sin nombre'}</h3>
+            <div class="feature-info"><strong>Coordenadas:</strong> (${meta.x}, ${meta.y})</div>
+            ${props.humedad_min ? `<div class="feature-info"><strong>Humedad:</strong> ${props.humedad_min} - ${props.humedad_max}</div>` : ''}
+            ${props.densidad_min ? `<div class="feature-info"><strong>Densidad:</strong> ${props.densidad_min} - ${props.densidad_max}</div>` : ''}
+            ${props.soporte_min ? `<div class="feature-info"><strong>Soporte:</strong> ${props.soporte_min} - ${props.soporte_max}</div>` : ''}
+            ${props.profundidad_m ? `<div class="feature-info"><strong>Profundidad:</strong> ${props.profundidad_m}</div>` : ''}
+            ${props.clasificacion ? `<div class="feature-info"><strong>Clasificación:</strong> ${props.clasificacion}</div>` : ''}
+            <div class="feature-actions">
+              <button class="btn btn-warning btn-small" onclick="showEditModal(${index})">✏ Editar</button>
+              <button class="btn btn-danger btn-small" onclick="deleteFeature(${index})">🗑 Eliminar</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderOutput() {
+      let validFeatures = featureList.filter(f => f !== null).map(f => {
+        const clean = { ...f };
+        delete clean._metadata;
+        return clean;
+      });
+      
+      if (validFeatures.length === 0) {
+        document.getElementById("output").innerText = "// No hay features para mostrar";
+        return;
+      }
+      
+      let jsonText = validFeatures.map(f => ", " + JSON.stringify(f, null, 2)).join("\n");
+      document.getElementById("output").innerText = jsonText;
+    }
+
+    function downloadFile() {
+      let validFeatures = featureList.filter(f => f !== null).map(f => {
+        const clean = { ...f };
+        delete clean._metadata;
+        return clean;
+      });
+      
+      if (validFeatures.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No hay features',
+          text: 'Agrega al menos una coordenada antes de exportar'
+        });
+        return;
+      }
+      
+      let nodes = validFeatures.map(f => ", " + JSON.stringify(f, null, 2)).join("\n");
+      let blob = new Blob([nodes], { type: "application/json;charset=utf-8" });
+      let link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "features_para_geojson.json";
+      link.click();
+      
+      Swal.fire({
+        icon: 'success',
+        title: '¡Descargado!',
+        text: 'El archivo se ha descargado correctamente',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+
+    function copyToClipboard() {
+      let text = document.getElementById("output").innerText;
+      if (!text || text === "// No hay features para mostrar") {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Nada que copiar',
+          text: 'Agrega al menos una coordenada primero'
+        });
+        return;
+      }
+      
+      navigator.clipboard.writeText(text).then(() => {
+        Swal.fire({
+          icon: 'success',
+          title: '¡Copiado!',
+          text: 'El JSON se ha copiado al portapapeles',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      });
+    }
+
+    function clearAllFeatures() {
+      if (featureList.filter(f => f !== null).length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'No hay coordenadas',
+          text: 'No hay coordenadas para eliminar'
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: '¿Eliminar todas las coordenadas?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar todo',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          featureList = [];
+          coordIndex = 0;
+          renderFeatures();
+          renderOutput();
+          Swal.fire({
+            icon: 'success',
+            title: '¡Limpiado!',
+            text: 'Todas las coordenadas han sido eliminadas',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        }
+      });
+    }
+
+    // Inicializar vista
+    renderFeatures();
+    renderOutput();
+  </script>
+</body>
+</html>
